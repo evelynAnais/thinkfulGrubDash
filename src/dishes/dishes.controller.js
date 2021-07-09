@@ -1,15 +1,6 @@
 const path = require("path");
-
-// Use the existing dishes data
 const dishes = require(path.resolve("src/data/dishes-data"));
-//const dishes = require("../data/dishes-data");
-
-
-// Use this function to assign ID's when necessary
 const nextId = require("../utils/nextId");
-
-// TODO: Implement the /dishes handlers needed to make the tests pass
-
 // middleware
 function hasRequiredFields(req, res, next) {
   const { data: { name, description, price, image_url } = {} } = req.body;
@@ -21,7 +12,6 @@ function hasRequiredFields(req, res, next) {
   }
   next();
 }
-
 // middleware
 function validatePrice(req, res, next) {
   const { data: { name, description, price, image_url } = {} } = req.body;
@@ -33,7 +23,6 @@ function validatePrice(req, res, next) {
   }
   next();
 }
-
 // middleware
 function dishExists(req, res, next) {
   const dishId = req.params.dishId;
@@ -63,7 +52,7 @@ function validateId(req, res, next) {
 }
 
 function list(req, res) {
-  res.json({ data: dishes })
+  res.json({ data: dishes });
 }
 
 function create(req, res) {
@@ -85,7 +74,6 @@ function read(req, res) {
 
 function update(req, res) {
   const { data: { name, description, price, image_url } = {} } = req.body;
-
   const updatedDish = {
     ...res.locals.dish,
     name,
@@ -93,8 +81,6 @@ function update(req, res) {
     price,
     image_url,
   };
-
-  //foundDish.href = href;
   res.json({ data: updatedDish });
 }
 
