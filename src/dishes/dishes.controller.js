@@ -36,7 +36,7 @@ function dishExists(req, res, next) {
     message: `dish id not found: ${req.params.dishId}`,
   });
 }
-
+//middleware
 function validateId(req, res, next) {
   const dishId = req.params.dishId;
   const { data: { id } } = req.body
