@@ -1,8 +1,8 @@
-// const path = require("path");
+const path = require("path");
 
 // Use the existing dishes data
-// const dishes = require(path.resolve("src/data/dishes-data"));
-const dishes = require("../data/dishes-data");
+const dishes = require(path.resolve("src/data/dishes-data"));
+//const dishes = require("../data/dishes-data");
 
 
 // Use this function to assign ID's when necessary
@@ -23,8 +23,11 @@ function hasRequiredFields(req, res, next) {
 }
 
 // middleware
-function hasPriceGreaterThanZero(req, res, next) {
+function validatePrice(req, res, next) {
   const { data: { name, description, price, image_url } = {} } = req.body;
+  if (typeof price !== 'number') {
+    return res.status(400).json({ error: 'price must be a number' });
+  }
   if (price < 0) {
     return res.status(400).json({ error: 'price must be a number greater than zero' });
   }
@@ -43,6 +46,20 @@ function dishExists(req, res, next) {
     status: 404,
     message: `dish id not found: ${req.params.dishId}`,
   });
+}
+
+function validateId(req, res, next) {
+  const dishId = req.params.dishId;
+  const { data: { id } } = req.body
+  if(id) {
+      if (dishId !== id) {
+      next({
+        status: 400,
+        message: `Dish id does not match route id. Dish: ${id}, Route: ${dishId}`,
+      });
+    }
+  }
+  next();
 }
 
 function list(req, res) {
@@ -66,9 +83,24 @@ function read(req, res) {
   res.json({ data: res.locals.dish });
 }
 
+function update(req, res) {
+  const { data: { name, description, price, image_url } = {} } = req.body;
+
+  const updatedDish = {
+    ...res.locals.dish,
+    name,
+    description,
+    price,
+    image_url,
+  };
+
+  //foundDish.href = href;
+  res.json({ data: updatedDish });
+}
+
 module.exports = {
   list,
-  create: [hasRequiredFields, hasPriceGreaterThanZero, create],
-  read: [dishExists, read]
-  
+  create: [hasRequiredFields, validatePrice, create],
+  read: [dishExists, read],
+  update: [dishExists, hasRequiredFields, validatePrice, validateId, update],
 }
