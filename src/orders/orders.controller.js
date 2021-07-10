@@ -3,10 +3,8 @@ const orders = require(path.resolve("src/data/orders-data"));
 const nextId = require("../utils/nextId");
 // middleware
 function hasRequiredFields(req, res, next) {
-  const { data: {deliverTo, mobileNumber, status, dishes: 
-    [name, description, image_url, price, quantity] } = {} } = req.body;
-  const requiredFields = ['deliverTo', 'mobileNumber', 'status', 'dishes', 
-  'name', 'description',  'image_url', 'price', 'quantity'];
+  const { data: { deliverTo, mobileNumber, dishes } = {} } = req.body;
+  const requiredFields = ['deliverTo', 'mobileNumber', 'dishes'];
   for (const field of requiredFields) {
     if (!req.body.data[field]) {
       next({ status: 400, message: `A '${field}' property is required.` });
@@ -15,45 +13,81 @@ function hasRequiredFields(req, res, next) {
   next();
 }
 // middleware
-function validateQuantity(req, res, next) {
-  const { data: {deliverTo, mobileNumber, status, dishes: 
-    [name, description, image_url, price, quantity] } = {} } = req.body;
-
-  if (typeof quantity !== 'number') {
-    return res.status(400).json({ error: 'quantity must be a number' });
+function validateDishes(req, res, next) {
+  const { data: { dishes } = {} } = req.body;
+  if (!Array.isArray(dishes)) {
+    return res.status(400).json({ error: 'dishes must be an array' });
   }
-  if (quantity < 0) {
-    return res.status(400).json({ error: 'quantity must be a number greater than zero' });
+  if (dishes.length < 1) {
+    return res.status(400).json({ error: 'dishes must be greater than one' })
   }
   next();
 }
+// middleware
+function validateQuantity(req, res, next) {
+  const { data: { dishes } = {} } = req.body;
+  for ( const index in dishes) {
+    if (typeof dishes[index].quantity !== 'number') {
+      return res.status(400).json({ error: `Dish ${index} must have a quantity that is an integer greater than 0` });
+    }
+    if (dishes[index].quantity < 1) {
+      return res.status(400).json({ error: `Dish ${index} must have a quantity that is an integer greater than 0` });
+    }
+  } 
+  next();
+}
+// middleware
+function orderExists(req, res, next) {
+  const orderId = req.params.orderId;
+  const foundOrder = orders.find((order) => order.id === orderId);
+  if (foundOrder) { 
+    res.locals.order = foundOrder
+    return next();
+  }
+  next({
+    status: 404,
+    message: `dish id not found: ${req.params.orderId}`,
+  });
+}
+
 
 function list(req, res) {
   res.json({ data: orders })
 }
 
 function create(req, res) {
-  const { data: {deliverTo, mobileNumber, status, dishes: 
-    [name, description, image_url, price, quantity] } = {} } = req.body;
+  const { data: { deliverTo, mobileNumber, status, dishes } = {} } = req.body;
   const newOrder = {
+    id: nextId(),
     deliverTo,
     mobileNumber,
     status,
-    dishes:[
-      {
-        id: nextId,
-        name,
-        description,
-        image_url,
-        price,
-      }
-    ]
+    dishes: [...dishes]
   };
-  dishes.push(newOrder);
+  orders.push(newOrder);
+  console.log('create order',newOrder)
   res.status(201).json({ data: newOrder });
+}
+
+function read(req, res) {
+  res.json({ data : res.locals.order })
+}
+
+function update(req, res) {
+  const { data: { deliverTo, mobileNumber, status, dishes } = {} } = req.body;
+  const updatedOrder = {
+    ...res.locals.order,
+    deliverTo,
+    mobileNumber,
+    status,
+    dishes: [...dishes]
+  };
+  res.json({ data: updatedOrder });
 }
 
 module.exports = {
   list,
-  create: [hasRequiredFields, validateQuantity, create],
+  create: [hasRequiredFields, validateDishes, validateQuantity, create],
+  read: [orderExists, read],
+  update: [orderExists, hasRequiredFields, validateDishes, validateQuantity, validateId, update],
 }
